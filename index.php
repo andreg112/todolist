@@ -18,6 +18,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah'])) {
     }
 }
 
+// Simpan edit tugas
+if (isset($_POST['simpan_edit'])) {
+    $editId = $_POST['edit_id'];
+    $judulBaru = trim($_POST['edit_judul']);
+    foreach ($_SESSION['tasks'] as &$task) {
+        if ($task['id'] == $editId) {
+            $task['title'] = $judulBaru;
+            break;
+        }
+    }
+    header("Location: index.php"); // Hindari resubmit
+    exit();
+}
+
 // Ubah status
 if (isset($_POST['ubah_status'])) {
     $id = $_POST['ubah_status'];
@@ -35,8 +49,20 @@ if (isset($_POST['hapus'])) {
     $_SESSION['tasks'] = array_filter($_SESSION['tasks'], fn($task) => $task['id'] != $id);
 }
 
+// Jika sedang edit
+$editTask = null;
+if (isset($_GET['edit'])) {
+    $editId = $_GET['edit'];
+    foreach ($_SESSION['tasks'] as $task) {
+        if ($task['id'] == $editId) {
+            $editTask = $task;
+            break;
+        }
+    }
+}
+
 /**
- * Tampilkan daftar tugas (dengan checkbox dan hapus)
+ * Tampilkan daftar tugas (dengan checkbox, edit, hapus)
  */
 function tampilkanDaftar($tasks)
 {
@@ -49,12 +75,18 @@ function tampilkanDaftar($tasks)
         echo "<input type='checkbox' onChange='this.form.submit()' $checked>";
         echo "<span class='fw-semibold'>" . htmlspecialchars($task['title']) . "</span>";
         echo "</form>";
-        echo "<div class='d-flex align-items-center gap-3'>";
+        echo "<div class='d-flex align-items-center gap-2'>";
         echo "<span class='fw-bold $statusClass'>" . ucfirst($task['status']) . "</span>";
+
+        // Tombol Edit
+        echo "<a href='?edit={$task['id']}' class='btn btn-sm btn-outline-secondary'>✏️</a>";
+
+        // Tombol Hapus
         echo "<form method='post' class='m-0'>";
         echo "<input type='hidden' name='hapus' value='{$task['id']}'>";
         echo "<button class='btn btn-sm btn-outline-danger'>✕</button>";
         echo "</form>";
+
         echo "</div>";
         echo "</div>";
     }
@@ -65,7 +97,7 @@ function tampilkanDaftar($tasks)
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>To-Do List | Rapi & Responsif</title>
+    <title>To-Do List | Dengan Edit</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -95,13 +127,22 @@ function tampilkanDaftar($tasks)
 <body>
 
 <div class="todo-wrapper">
-    <h2>📝 <span class="text-dark">To-Do List</span> 🥶</h2>
+    <h2>📝 <span class="text-dark">To-Do List</span></h2>
 
-    <!-- Form Tambah -->
-    <form method="post" class="d-flex gap-2 mb-3">
-        <input type="text" name="tugas" class="form-control" placeholder="Tambahkan tugas baru..." required>
-        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
-    </form>
+    <!-- Form Tambah / Edit -->
+    <?php if ($editTask): ?>
+        <form method="post" class="d-flex gap-2 mb-3">
+            <input type="hidden" name="edit_id" value="<?= $editTask['id'] ?>">
+            <input type="text" name="edit_judul" class="form-control" value="<?= htmlspecialchars($editTask['title']) ?>" required>
+            <button type="submit" name="simpan_edit" class="btn btn-success">Simpan</button>
+            <a href="index.php" class="btn btn-secondary">Batal</a>
+        </form>
+    <?php else: ?>
+        <form method="post" class="d-flex gap-2 mb-3">
+            <input type="text" name="tugas" class="form-control" placeholder="Tambahkan tugas baru..." required>
+            <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+        </form>
+    <?php endif; ?>
 
     <!-- Daftar Tugas -->
     <h5 class="fw-bold">Daftar Tugas:</h5>
